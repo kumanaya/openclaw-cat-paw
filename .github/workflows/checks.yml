@@ -76,24 +76,37 @@ jobs:
       # repository layout as-is ships the ten routers with none of the thirty
       # playbooks behind them, because OpenClaw stops at a directory that has a
       # SKILL.md. So: every SKILL.md in the repo must be a top-level skill here.
+      #
+      # INSIDE the container, and that is the whole point. /opt/plow/skills
+      # exists in the image, not on the runner, so a check that stats it from
+      # the host finds nothing and fails on a perfectly good build. The repo is
+      # mounted read-only; only the paths under /opt are read.
       - name: Confirm the skill overlay landed and was flattened
         run: |
           set -euo pipefail
-          expected=0
-          while IFS= read -r skill_md; do
-            name=$(basename "$(dirname "$skill_md")")
-            expected=$((expected + 1))
-            if [ ! -f "/opt/plow/skills/$name/SKILL.md" ]; then
-              echo "::error::$name is not a top-level skill in the image"
+          docker run --rm -v "$PWD:/repo:ro" --entrypoint bash openclaw-cat-paw:ci -c '
+            set -euo pipefail
+            expected=0
+            while IFS= read -r skill_md; do
+              name=$(basename "$(dirname "$skill_md")")
+              expected=$((expected + 1))
+              if [ ! -f "/opt/plow/skills/$name/SKILL.md" ]; then
+                echo "::error::$name is not a top-level skill in the image"
+                exit 1
+              fi
+            done < <(find /repo/skills -name SKILL.md -type f)
+            if [ "$expected" -eq 0 ]; then
+              echo "::error::the repository mount came up empty; this proves nothing"
               exit 1
             fi
-          done < <(find skills -name SKILL.md -type f)
-          [ "$expected" -gt 0 ] || { echo "::error::no skills found in the repository"; exit 1; }
-          nested=$(docker run --rm --entrypoint sh openclaw-cat-paw:ci -c \
-            'find /opt/plow/skills -mindepth 3 -name SKILL.md -type f | wc -l')
-          [ "$nested" -eq 0 ] || { echo "::error::$nested playbooks are still nested"; exit 1; }
-          test -f /opt/plow/prompt/AGENTS.md || { echo "::error::persona missing"; exit 1; }
-          echo "$expected playbooks are top-level skills, and the persona is present."
+            nested=$(find /opt/plow/skills -mindepth 3 -name SKILL.md -type f | wc -l)
+            if [ "$nested" -ne 0 ]; then
+              echo "::error::$nested playbooks are still nested"
+              exit 1
+            fi
+            test -f /opt/plow/prompt/AGENTS.md || { echo "::error::persona missing"; exit 1; }
+            echo "$expected playbooks are top-level skills, and the persona is present."
+          '
       # A trailing `USER root` in the Dockerfile silently ships the deployment
       # privileged, and nothing else in this job would notice. Assert the user.
       - name: Confirm the image does not run as root
