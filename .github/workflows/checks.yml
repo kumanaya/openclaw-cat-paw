@@ -4,7 +4,7 @@ name: Checks
 # package here, so there is no TypeScript matrix (that lives in
 # cat-paw-latch). These jobs are exactly this repo's surface:
 #
-#   shell       bash -n plus shellcheck over scripts/*.sh and image/*.sh
+#   shell       bash -n, shellcheck -x, and the build-retry test
 #   powershell  parse every scripts/*.ps1 with the PowerShell parser
 #   docker      validate compose.yml, then build the image install.sh runs
 #
@@ -40,9 +40,14 @@ jobs:
       - uses: actions/checkout@v7
       - name: Parse with bash -n
         run: |
-          for f in scripts/*.sh image/*.sh; do bash -n "$f"; done
+          for f in scripts/*.sh image/*.sh test/*.sh; do bash -n "$f"; done
       - name: shellcheck
-        run: shellcheck scripts/*.sh image/*.sh
+        run: shellcheck -x scripts/*.sh image/*.sh test/*.sh
+      # The retry in image/build-image.sh decides whether a rate-limited CI run
+      # is retried or fails. It runs here with a fake build, so the decision is
+      # checked on every push rather than the first time a registry says no.
+      - name: Test the build retry
+        run: bash test/build-image.sh
 
   powershell:
     runs-on: ubuntu-24.04
@@ -81,8 +86,15 @@ jobs:
       # Proves the deliverable assembles: base image pull, the review CLIs
       # (gitleaks, gh, jq, yq, shellcheck only), the skill overlay and the
       # persona. No credentials and no push — publishing stays manual.
+      #
+      # Through image/build-image.sh, which retries the build when — and only
+      # when — the registry answers 429. The base is ~1.5 GB from
+      # public.ecr.aws and anonymous pulls are capped per IP, and GitHub's
+      # runners share an IP pool, so a busy repo hits "toomanyrequests: Data
+      # limit exceeded" and dies in seconds at metadata resolution. A real
+      # build error is still a real build error: it prints in full and fails.
       - name: Build the image
-        run: docker build --tag openclaw-cat-paw:ci .
+        run: bash image/build-image.sh openclaw-cat-paw:ci .
       - name: Confirm baked review CLIs
         run: docker run --rm --entrypoint /opt/cat-paw/verify-review-tools.sh openclaw-cat-paw:ci
       # The overlay is the product. A build that assembles while /opt/plow/skills
