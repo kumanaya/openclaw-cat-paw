@@ -22,9 +22,18 @@ ENV AGENT_ID=openclaw-cat-paw
 ENV AGENT_NAME="OpenClaw Cat Paw"
 ENV AGENT_BLURB="OpenClaw Cat Paw, a builder cat you text from your phone. It opens one playbook per job and works that objective instead of improvising a procedure, and reaches your computer through Latch when you want to approve an action before it runs."
 
-# No model is pinned here on purpose. The base renders the provider list
-# (plow/z-ai/glm-5.2 with plow/anthropic/claude-sonnet-5 as the fallback) into
-# the config it owns, and an id outside that list is refused at the provider.
+# The model is `plow/z-ai/glm-5.2`, with `plow/anthropic/claude-sonnet-5` as
+# the fallback. That is a decision, so it is written down, and it is the
+# model's job to enforce rather than this file's.
+#
+# Nothing is set here on purpose. The base renders the provider list and
+# `agents.defaults.model` into the config it owns, and an id outside that list
+# is refused at the provider — so an override here would be a second place
+# that can disagree with the first. scripts/verify.sh reads the effective model
+# out of the running agent and fails if a base bump moves it, which is the
+# only way this choice can be broken silently. Change it with
+# `openclaw config patch` against `agents.defaults.model`, not here.
+#
 # AGENT_RUNTIME is likewise the base's to set: it already reports OpenClaw.
 
 # Tiny review CLIs (gitleaks, gh, jq, yq, shellcheck). No Semgrep/Trivy/nmap —

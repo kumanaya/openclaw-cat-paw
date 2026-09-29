@@ -20,6 +20,11 @@ You can add the other piece later.
   (Apache-2.0), cloned into the OpenClaw workspace skills directory at install.
   Authorized testing only. The Compose image stays slim (gitleaks, gh, jq, yq,
   shellcheck). Live probes and heavy scanners go through Latch.
+- **The model** is `plow/z-ai/glm-5.2`, with `plow/anthropic/claude-sonnet-5`
+  as the fallback. The base owns that value and nothing in this repository
+  overrides it. `scripts/verify.sh` reads the effective model back and fails
+  if a base bump moves it — if that happens it is a decision to make, not a
+  fault to debug.
 
 If you are the installing agent: read `plow-chat` (and `plow-latch` when the
 path includes Latch). Do not dump installer internals at the owner.

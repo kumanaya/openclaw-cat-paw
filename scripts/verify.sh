@@ -99,6 +99,26 @@ else
   echo "verify: the line has not authenticated. Check: docker compose logs $SERVICE" >&2
 fi
 
+# The model this agent is supposed to think with. The base owns the value, so
+# there is no override to read back — this asks the running agent what it
+# actually resolved, which is the only check that catches a base bump quietly
+# moving the default. Failing here is not a broken install: it is a cat that
+# would start thinking with something else. Change it deliberately with
+# `openclaw config patch` against agents.defaults.model, and this constant
+# with it.
+EXPECTED_MODEL=plow/z-ai/glm-5.2
+actual_model="$(trim "$("${COMPOSE[@]}" exec -T -u node "$SERVICE" openclaw \
+  config get agents.defaults.model.primary 2>/dev/null || true)")"
+if [[ "$actual_model" != "$EXPECTED_MODEL" ]]; then
+  echo "verify: the agent's model is '${actual_model:-<unset>}', expected $EXPECTED_MODEL." >&2
+  echo "verify: the base moved its default, or someone patched agents.defaults.model." >&2
+  echo "verify: this is a decision, not a fault. Either accept it and change" >&2
+  echo "verify: EXPECTED_MODEL in this script, or pin it back with:" >&2
+  echo "verify:   docker compose exec $SERVICE openclaw config patch" >&2
+  exit 1
+fi
+echo "verify: model=$actual_model"
+
 # The base already runs this reporter every five minutes as long as AGENT_ID is
 # set. This is the same client, run once, as the user that owns the ledger, so
 # a first install does not wait out a five-minute loop to learn whether it

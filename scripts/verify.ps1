@@ -87,6 +87,27 @@ if ($identity) {
     Write-Host "verify: the line has not authenticated. Check: docker compose logs $Service"
 }
 
+# The model this agent is supposed to think with. The base owns the value, so
+# there is no override to read back - this asks the running agent what it
+# actually resolved, which is the only check that catches a base bump quietly
+# moving the default. Failing here is not a broken install: it is a cat that
+# would start thinking with something else. Change it deliberately with
+# `openclaw config patch` against agents.defaults.model, and this constant
+# with it.
+$ExpectedModel = "plow/z-ai/glm-5.2"
+$actualModel = (docker compose -f $ComposeFile exec -T -u node $Service openclaw `
+        config get agents.defaults.model.primary 2>$null) -join ""
+$actualModel = $actualModel.Trim()
+if ($actualModel -ne $ExpectedModel) {
+    Write-Host "verify: the agent's model is '$actualModel', expected $ExpectedModel."
+    Write-Host "verify: the base moved its default, or someone patched agents.defaults.model."
+    Write-Host "verify: this is a decision, not a fault. Either accept it and change"
+    Write-Host "verify: ExpectedModel in this script, or pin it back with:"
+    Write-Host "verify:   docker compose exec $Service openclaw config patch"
+    throw "verify: unexpected model"
+}
+Write-Host "verify: model=$actualModel"
+
 # The base already runs this reporter every five minutes as long as AGENT_ID is
 # set. This is the same client, run once, as the user that owns the ledger.
 function Invoke-IndexClient {

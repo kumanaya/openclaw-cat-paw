@@ -59,7 +59,10 @@ flowchart LR
   claw -->|"answer"| phone
 ```
 
-No desktop app required. The playbooks are the job.
+No desktop app required. The playbooks are the job. The model is
+`plow/z-ai/glm-5.2`, with `plow/anthropic/claude-sonnet-5` behind it — the
+base's own choice, unpinned here, and checked on every verify so a base bump
+cannot move it unnoticed.
 
 ---
 
