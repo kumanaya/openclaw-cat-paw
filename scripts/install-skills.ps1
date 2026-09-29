@@ -111,10 +111,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "tar into container failed" }
     docker compose -f $ComposeFile exec -T -u 0 $Service chown -R node:node "/var/lib/plow/workspace/skills/$PackName"
     $landed = docker compose -f $ComposeFile exec -T -u node $Service sh -c "find /var/lib/plow/workspace/skills/$PackName -name SKILL.md -type f | wc -l"
-    Write-Host "install-skills.ps1: container pack has $($landed.Trim()) SKILL.md files"
+    $landedCount = [int](($landed -join "").Trim())
+    if ($landedCount -lt 1) { throw "install-skills.ps1: the pack landed but carries no SKILL.md. Re-run, or check the pin." }
+    Write-Host "install-skills.ps1: container pack has $landedCount SKILL.md files"
     Write-Host "install-skills.ps1: authorized testing only. Live probes go through Latch."
+    # The persona is not this script's business. On the Compose image it is baked
+    # at /opt/plow/prompt/AGENTS.md and the base's boot renders it into the
+    # workspace on every start; install-context.ps1 checks that, and an existing
+    # OpenClaw is the only place context is written.
     & (Join-Path $PSScriptRoot "install-skill-packs.ps1")
-    & (Join-Path $PSScriptRoot "install-context.ps1")
 }
 finally {
     Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue

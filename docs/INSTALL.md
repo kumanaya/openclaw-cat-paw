@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="images/install-guide.png" alt="OpenClaw Cat Paw installation guide" width="760" />
-</p>
-
 # Install OpenClaw Cat Paw
 
 Two pieces. Pick a path, paste that prompt into your harness (OpenClaw, Claude

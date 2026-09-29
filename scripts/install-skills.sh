@@ -163,7 +163,14 @@ rm -rf "$stage"
 landed="$("${COMPOSE[@]}" exec -T -u node "$SERVICE" sh -c \
   "find $SKILLS_ROOT/$PACK_NAME -name SKILL.md -type f | wc -l")"
 landed="${landed//$'\r'/}"
+if [[ "${landed//$'\r'/}" -lt 1 ]]; then
+  echo "install-skills.sh: the pack landed but carries no SKILL.md. Re-run, or check the pin." >&2
+  exit 1
+fi
 echo "install-skills.sh: container pack has $landed SKILL.md files"
 echo "install-skills.sh: authorized testing only. Live probes go through Latch."
+# The persona is not this script's business. On the Compose image it is baked at
+# /opt/plow/prompt/AGENTS.md and the base's boot renders it into the workspace
+# on every start; scripts/install-context.sh checks that, and an existing
+# OpenClaw is the only place context is written.
 "$ROOT/scripts/install-skill-packs.sh"
-bash "$ROOT/scripts/install-context.sh"
