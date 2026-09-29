@@ -9,6 +9,20 @@ name: Checks
 #   docker      validate compose.yml, then build the image install.sh runs
 #
 # main is protected and requires all three.
+#
+# Two pins, both deliberate. `ubuntu-24.04` rather than `ubuntu-latest`:
+# GitHub moves `latest` to Ubuntu 26.04 starting 19 Oct 2026
+# (actions/runner-images#14748), and this repo's whole job is "does the image
+# build and are the skills right" — an involuntary runner change is a red build
+# on a day that is not about the runner. It is still a label, not a digest, so
+# 24.04 keeps getting its security patches; we want those, we just do not want
+# the OS underneath decided for us. The Dockerfile pins its base by digest for
+# the same reason: a tag is a name somebody can move.
+#
+# `actions/checkout@v7` runs on node24, which is what retired the warning on v4.
+# Its breaking changes are all about `pull_request_target` and `workflow_run`
+# fork-PR checkout, which this workflow does not use — it triggers on `push` to
+# main and on `pull_request`. Bump both together with a CI run that proves it.
 
 on:
   push:
@@ -20,10 +34,10 @@ permissions:
 
 jobs:
   shell:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Parse with bash -n
         run: |
           for f in scripts/*.sh image/*.sh; do bash -n "$f"; done
@@ -31,10 +45,10 @@ jobs:
         run: shellcheck scripts/*.sh image/*.sh
 
   powershell:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Parses every script without running it — the PowerShell twin of
       # `bash -n`. pwsh ships on the ubuntu runner; nothing is installed.
       - name: Parse every .ps1
@@ -56,10 +70,10 @@ jobs:
           Write-Host "$($files.Count) PowerShell scripts parsed."
 
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify local adapted skill packs
         run: python3 scripts/verify-local-skills.py
       - name: Validate compose.yml
