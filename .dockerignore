@@ -1,0 +1,19 @@
+# Anything the Dockerfile COPYs must NOT be listed here. Those are, in order:
+# vendor/review-tools.pin, image/, PERSONA.md, skills/.
+#
+# `COPY skills/ /opt/plow/skills/` needs the trailing slash to merge with the
+# base's own skills; a stray `skills/` line here would make the overlay silently
+# empty and the cat would lose every playbook while still reporting installed.
+
+__pycache__/
+*.pyc
+.git
+.gitattributes
+.github
+docs
+plow-credentials
+supabase.env
+.env
+plow/.env
+.tools/
+scripts/

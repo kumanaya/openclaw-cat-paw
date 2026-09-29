@@ -1,0 +1,85 @@
+# OpenClaw Cat Paw on Plow's maintained OpenClaw base image.
+#
+# The base owns the boot, the Plow channel plugin, the Latch MCP bridge, the
+# OpenClaw gateway config and the usage reporter. This image owns the persona
+# and the playbook packs. Every line we do not write is a boot fix inherited
+# free on the next base bump.
+#
+# Pinned by digest as well as tag, like the base itself: a tag is a name
+# somebody can move, and the code it names boots holding this agent's live Plow
+# credential. The tag names the plow-openclaw-agent commit the image was
+# published from; the digest is that image's manifest. Bump both together.
+# Ref: https://github.com/plow-pbc/plow-openclaw-agent
+FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-d78e4ea75e7c44b9b63d7ea4b50b2aa180daf51f@sha256:f687b5eb54153edcf143deeef52c66465a19efb5e371b03f054465f5e46337f7
+
+# Agent Index identity. The base's own reporter reads AGENT_ID every five
+# minutes and stands down entirely when it is unset, so an owner who does not
+# want their usage on the Index builds without it. AGENT_NAME and AGENT_BLURB
+# are sent once, on registration: the Index leaves a field it is not given
+# alone, so a value passed every pass would overwrite an edit the owner made
+# on their own page. Edit the page on the Index, not here.
+ENV AGENT_ID=openclaw-cat-paw
+ENV AGENT_NAME="OpenClaw Cat Paw"
+ENV AGENT_BLURB="OpenClaw Cat Paw, a builder cat you text from your phone. It opens one playbook per job and works that objective instead of improvising a procedure, and reaches your computer through Latch when you want to approve an action before it runs."
+
+# No model is pinned here on purpose. The base renders the provider list
+# (plow/z-ai/glm-5.2 with plow/anthropic/claude-sonnet-5 as the fallback) into
+# the config it owns, and an id outside that list is refused at the provider.
+# AGENT_RUNTIME is likewise the base's to set: it already reports OpenClaw.
+
+# Tiny review CLIs (gitleaks, gh, jq, yq, shellcheck). No Semgrep/Trivy/nmap —
+# those bloat the image. Live probes stay on Latch. External playbooks clone at
+# install time; local adapted packs are baked here.
+#
+# /opt/plow and / are root-owned and the image runs as `node`, so this is the
+# one step that needs root. `USER node` returns below, and it has to be the
+# LAST `USER` line in this file: left as the final directive it also becomes the
+# user the container RUNS as, which ships the deployment privileged.
+USER root
+
+COPY vendor/review-tools.pin /opt/cat-paw/review-tools.pin
+COPY image/install-review-tools.sh image/verify-review-tools.sh /opt/cat-paw/
+RUN chmod 0755 /opt/cat-paw/install-review-tools.sh /opt/cat-paw/verify-review-tools.sh \
+ && /opt/cat-paw/install-review-tools.sh \
+ && /opt/cat-paw/verify-review-tools.sh
+
+# Identity specific to this agent. The base's boot reads /opt/plow/prompt/AGENTS.md
+# on every start and renders it into /var/lib/plow/workspace/AGENTS.md, with the
+# Latch instructions block appended when a Mac is connected. The source file is
+# PERSONA.md. Do not COPY an AGENTS.md into the state volume: the volume masks
+# the image layer and the next boot overwrites it anyway.
+COPY PERSONA.md /opt/plow/prompt/AGENTS.md
+RUN chmod 0644 /opt/plow/prompt/AGENTS.md
+
+# The trailing slash is load-bearing. `COPY skills/ /opt/plow/skills/` copies
+# the CONTENTS of this directory in, merging with what the base already put
+# there, so we inherit the base's `owners-mac`, `google-workspace`,
+# `knowledge-base` and `support-desk` and add ours beside them. Without the
+# slash ours would nest at /opt/plow/skills/skills and the base's would be the
+# only ones loaded.
+#
+# /opt/plow/skills is already a configured skills source: the base renders
+# `skills.load.extraDirs: ["/opt/plow/skills"]` into the configuration it owns.
+# Nothing here has to register a path.
+COPY skills/ /opt/plow/skills/
+
+# Then flatten it. OpenClaw's loader stops at a directory that has a SKILL.md,
+# so the repository's `skills/<pack>/<playbook>/SKILL.md` shape would load the
+# ten routers and none of the thirty playbooks behind them. image/publish-skills.sh
+# lifts each nested playbook to the top level, and fails the build rather than
+# shipping a cat that advertises playbooks it cannot open. It also refuses on a
+# name collision instead of letting one playbook shadow another.
+COPY image/publish-skills.sh /opt/cat-paw/publish-skills.sh
+RUN chmod 0755 /opt/cat-paw/publish-skills.sh \
+ && /opt/cat-paw/publish-skills.sh /opt/plow/skills
+
+COPY LICENSE /opt/plow/skills/LICENSE.openclaw-cat-paw
+
+# Normalise modes without touching the owner of /opt/plow/skills, which is the
+# base's. The runtime packs that scripts/install-skill-packs.sh clones land in
+# /var/lib/plow/workspace/skills on the state volume instead, because that is
+# the workspace skill root and it survives an image rebuild.
+RUN find /opt/plow/skills -type d -exec chmod 0755 {} + \
+ && find /opt/plow/skills -type f -exec chmod 0644 {} +
+
+USER node

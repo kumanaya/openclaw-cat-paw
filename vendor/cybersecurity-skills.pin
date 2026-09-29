@@ -1,0 +1,4 @@
+# Cybersecurity skill pack. Clone at install time; do not vendor the playbooks.
+# https://github.com/mukul975/Anthropic-Cybersecurity-Skills
+repo=https://github.com/mukul975/Anthropic-Cybersecurity-Skills.git
+sha=54a798831d2266a3ca61ce68a7acb80b81160d57

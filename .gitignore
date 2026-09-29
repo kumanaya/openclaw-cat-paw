@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+plow/.env
+plow-credentials
+.tools/
+supabase.env
+.activation.json

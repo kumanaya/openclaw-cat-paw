@@ -1,0 +1,47 @@
+# Named explicitly, and deliberately NOT left to the directory name. Renaming
+# the checkout must not orphan a running deployment: an implicit project name
+# also names the `state` volume, so a rename would quietly hand the agent an
+# empty volume and leave the old containers still running.
+name: openclaw-cat-paw
+
+services:
+  openclaw-cat-paw:
+    # OpenClaw Cat Paw runs on Plow's maintained OpenClaw base image.
+    # Cold build is mostly the public upstream pull.
+    build: .
+    env_file:
+      # Created by `scripts/install.sh` (`plow-agents mint`), never committed.
+      # The base's boot reads PLOW_API_BASE and PLOW_AGENT_TOKEN from the
+      # environment and refuses to start without them, so this is required in
+      # practice. Kept optional so CI can validate Compose before an install
+      # creates the credentials; install.sh requires the file before it starts
+      # the agent, and so does everything in scripts/ that execs into it.
+      - path: plow-credentials
+        required: false
+    environment:
+      # Product identity for the Agent Index. Literal on purpose: do not
+      # interpolate a host AGENT_ID, or usage reports as a different agent.
+      # The Dockerfile sets the same value.
+      AGENT_ID: openclaw-cat-paw
+    # No `ports:` and no reverse proxy in front of this service, deliberately.
+    # The agent is reached through the Plow channel and through
+    # `docker compose exec openclaw-cat-paw openclaw …`, never over a published
+    # socket. The base runs the Gateway with `auth.mode: "trusted-proxy"` and
+    # `deviceAutoApprove.scopes: ["operator.admin"]`, so whoever reaches a
+    # published port is an administrator of the agent. If you need the Control
+    # UI, reach it from inside the container instead of opening a port.
+    volumes:
+      # The runtime's own state: OpenClaw's config, sessions, workspace and the
+      # playbook packs scripts/install-skill-packs.sh clones into
+      # workspace/skills. A fresh volume inherits `node:node` from the image's
+      # own directory, which is what lets the boot write its state as `node`.
+      - state:/var/lib/plow
+      # The base renders its `$include` fragments here. Persisted with state so
+      # an image rebuild cannot leave /var/lib/plow/openclaw.json referencing an
+      # empty container filesystem.
+      - config:/etc/plow/openclaw
+    stop_grace_period: 35s
+
+volumes:
+  state:
+  config:
