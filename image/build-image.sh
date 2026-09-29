@@ -3,11 +3,12 @@
 #
 #   build-image.sh [tag] [context]
 #
-# The base image is ~1.5 GB from public.ecr.aws and anonymous pulls are limited
-# per IP. GitHub-hosted runners share an IP pool, so a public repo with a few
-# pushes in an hour hits "429 toomanyrequests: Data limit exceeded" and the
-# build dies in seconds at metadata resolution — before it reads a line of the
-# Dockerfile. Nothing about the image is wrong; the network said no.
+# Run it by hand. It is not wired to any workflow any more — this repository
+# has no CI — but the base is ~1.5 GB from public.ecr.aws and anonymous pulls
+# are capped per IP, so a developer behind the same limit gets the same
+# six-second failure the runner used to, and this is the same way out. The
+# error arrives at metadata resolution, before a line of the Dockerfile is
+# read. Nothing about the image is wrong; the network said no.
 #
 # So the build is retried, and ONLY when the log says 429. Any other failure is
 # a real failure: it is printed in full and exits non-zero. A retry that
