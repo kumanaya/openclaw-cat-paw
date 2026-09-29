@@ -2,10 +2,13 @@
 # Regression test for image/build-image.sh: a retry that never fires, or that
 # fires on the wrong failure, is worse than no retry at all.
 #
-# SC1091 - the sourced file is checked on its own, in its own right.
-# SC2034 - the variables below are read by the sourced file, not by this one.
-# SC2329 - run_build is redefined here and called by the sourced file.
-# shellcheck disable=SC1091,SC2034,SC2329
+# run_build is redefined below and called from build_with_retry in the sourced
+# file. `shellcheck -x` follows the source and sees the real call, so there is
+# nothing to suppress: without the directive it cannot, and reports the
+# overrides as unreachable code. That is a version-dependent trap - the
+# runner's shellcheck is newer than the 0.11.0 most people run locally, and
+# added SC2317 after the fact.
+# shellcheck source=image/build-image.sh
 #
 # The call count lives in a file, not a variable: build_with_retry captures the
 # build log with $(...), so every call runs in a subshell and a shell variable

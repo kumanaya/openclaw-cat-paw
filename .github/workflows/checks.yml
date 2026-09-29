@@ -4,7 +4,7 @@ name: Checks
 # package here, so there is no TypeScript matrix (that lives in
 # cat-paw-latch). These jobs are exactly this repo's surface:
 #
-#   shell       bash -n plus shellcheck over scripts/*.sh and image/*.sh
+#   shell       bash -n, shellcheck -x, and the build-retry test
 #   powershell  parse every scripts/*.ps1 with the PowerShell parser
 #   docker      validate compose.yml, then build the image install.sh runs
 #
@@ -42,7 +42,7 @@ jobs:
         run: |
           for f in scripts/*.sh image/*.sh test/*.sh; do bash -n "$f"; done
       - name: shellcheck
-        run: shellcheck scripts/*.sh image/*.sh test/*.sh
+        run: shellcheck -x scripts/*.sh image/*.sh test/*.sh
       # The retry in image/build-image.sh decides whether a rate-limited CI run
       # is retried or fails. It runs here with a fake build, so the decision is
       # checked on every push rather than the first time a registry says no.
