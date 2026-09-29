@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://aiworthusing.com/agent-index/openclaw-cat-paw">
+  <a href="https://aiworthusing.com/agent-index/hermes-cat-paw">
     <img src="https://img.shields.io/badge/%F0%9F%90%BE%20TEXT%20THE%20CAT-Open%20the%20Agent%20Index-111827?style=for-the-badge" alt="Text the cat — open the Agent Index" />
   </a>
 </p>
@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="https://aiworthusing.com/agent-index/openclaw-cat-paw"><img src="https://img.shields.io/badge/Agent%20Index-openclaw--cat--paw-111827?style=flat-square" alt="Agent Index" /></a>
+  <a href="https://aiworthusing.com/agent-index/hermes-cat-paw"><img src="https://img.shields.io/badge/Agent%20Index-hermes--cat--paw-111827?style=flat-square" alt="Agent Index" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="MIT" /></a>
 </p>
 
@@ -50,19 +50,16 @@ You text. The cat texts back.
 | Piece | What it is |
 | --- | --- |
 | **Plow Chat** | The phone line. |
-| **OpenClaw** | The brain. It opens one playbook and follows it. |
+| **Hermes** | The brain. It opens one playbook and follows it. |
 
 ```mermaid
 flowchart LR
   phone["Your phone"] -->|"text"| plow["Plow Chat"]
-  plow --> claw["OpenClaw + a playbook"]
-  claw -->|"answer"| phone
+  plow --> hermes["Hermes + a playbook"]
+  hermes -->|"answer"| phone
 ```
 
-No desktop app required. The playbooks are the job. The model is
-`plow/z-ai/glm-5.2`, with `plow/anthropic/claude-sonnet-5` behind it — the
-base's own choice, unpinned here, and checked on every verify so a base bump
-cannot move it unnoticed.
+No desktop app required. The playbooks are the job.
 
 ---
 
@@ -119,9 +116,9 @@ A normal turn:
 
 ## What the cat knows
 
-OpenClaw does not freelance a process. It opens a playbook and works that objective.
+Hermes does not freelance a process. It opens a playbook and works that objective.
 
-Local adapted routers and their child playbooks are baked into the image at `/opt/plow/skills`, which the base already registers as a skills directory — so they load with no configuration. The build flattens this repository's `skills/<pack>/<playbook>/` shape into one directory per playbook, because OpenClaw's loader stops at a directory that has a `SKILL.md` and never looks inside it; baked as-is, the ten routers would load and none of the thirty playbooks behind them. External playbooks are pinned by commit and cloned at install into the workspace on the state volume, where they survive a rebuild. `skill-packs` is the map, and it is in the agent's prompt.
+Local adapted routers and their child playbooks are baked into the image and copied into an existing Hermes home. External playbooks are pinned and cloned at install. `skills/skill-packs/SKILL.md` is the map the agent actually reads.
 
 | Pack | When you text about… | License |
 | --- | --- | --- |
@@ -136,25 +133,7 @@ Local adapted routers and their child playbooks are baked into the image at `/op
 | [Academic research](https://github.com/Imbad0202/academic-research-skills) | A paper, a citation check | CC BY-NC 4.0. Not MIT |
 | Security | Authorized recon, a hunt, a report. One pack among the others | Apache-2.0 |
 
-### Where the playbooks live
-
-The 51 playbooks that do not know what runtime they run on live in one place,
-[cat-paw-workflows](https://github.com/kumanaya/cat-paw-workflows), which
-[hermes-cat-paw](https://github.com/kumanaya/hermes-cat-paw) also bakes. This
-image clones it at build time at the commit in
-`vendor/cat-paw-workflows.pin` — pinned by SHA, not by tag, for the same reason
-the base image is. A change there lands in both images at once, which is why
-that repository verifies itself.
-
-Five skills stay here, because they are statements about *this* agent: the
-boot, the state directory, how a reply is delivered, what is baked in this
-image. The same text would be false in the other runtime.
-
 ### Local adapted sources
-
-Canonical in [cat-paw-workflows](https://github.com/kumanaya/cat-paw-workflows#adapted-sources),
-which is where those playbooks now live. Reproduced here so the licence and
-scope caveats travel with the product page.
 
 | Source repo | Audited commit | License and scope caveat |
 | --- | --- | --- |
@@ -185,10 +164,10 @@ The image stays small. `gitleaks`, `gh`, `jq`, `yq`, `shellcheck` are in it (`ve
 <summary><strong>Load or reload the packs</strong></summary>
 
 ```sh
-git clone https://github.com/kumanaya/openclaw-cat-paw.git
-cd openclaw-cat-paw
+git clone https://github.com/kumanaya/hermes-cat-paw.git
+cd hermes-cat-paw
 ./scripts/install-skills.sh                    # Compose agent
-# ./scripts/install-skills.sh --home ~/.openclaw  # existing OpenClaw
+# ./scripts/install-skills.sh --home ~/.hermes  # existing Hermes
 ```
 
 Windows: `scripts/install-skills.ps1`.
@@ -225,11 +204,11 @@ Full guide: **[docs/INSTALL.md](docs/INSTALL.md)**.
 | I want | What I get |
 | --- | --- |
 | [**The agent**](docs/INSTALL.md#agent-only) | Text the cat from my phone. |
-| [**I already run OpenClaw**](docs/INSTALL.md#existing-openclaw) | Keep it. Add the cat. |
+| [**I already run Hermes**](docs/INSTALL.md#existing-hermes) | Keep it. Add the cat. |
 
 ```sh
-git clone https://github.com/kumanaya/openclaw-cat-paw.git
-cd openclaw-cat-paw
+git clone https://github.com/kumanaya/hermes-cat-paw.git
+cd hermes-cat-paw
 # docs/INSTALL.md — pick a path
 ```
 
