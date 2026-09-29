@@ -13,10 +13,12 @@ playbook and follow it. Do not invent the procedure from memory, and do
 not flatten a pack into one guess. For the local adapted packs below, the
 same rule is strict: choose exactly one child playbook per turn, never two.
 
-Every playbook is a top-level skill in your prompt, named by its own
-directory — `code-change-blast-radius-map`, not a path under a pack. Open a
-playbook by that name. The last column below is a repository path for
-whoever maintains this repo, not a place to go looking on disk.
+On OpenClaw every playbook is a top-level skill in your prompt, named by its
+own directory — `code-change-blast-radius-map`, not a path under a pack. The
+loader stops at a directory that has a `SKILL.md` and never looks inside it,
+so the build lifts each child up to the top before baking. Open a playbook by
+that name. The last column below is a repository path for whoever maintains
+this repo, not a place to go looking on disk.
 
 Precedence is deterministic. Apply these rules in order:
 

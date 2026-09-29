@@ -1,0 +1,15 @@
+# The playbooks that do not know what runtime they run on.
+# https://github.com/kumanaya/cat-paw-workflows
+#
+# Cloned at docker build and copied into the image, then flattened by
+# image/publish-skills.sh. Baked rather than installed: these are part of
+# the product, and a pack that only arrives when the installer runs is a
+# pack the image does not have.
+#
+# Pinned by full commit, never by tag, for the reason the base image is:
+# a tag is a name somebody can move. The Dockerfile reads sha= from THIS
+# FILE, so there is one place to bump and no way for it to drift.
+#
+# Bump both lines together, rebuild, and re-run scripts/verify.sh.
+repo=https://github.com/kumanaya/cat-paw-workflows.git
+sha=68582c9e1c27ec23fe051c1c8f34df9827995ce2

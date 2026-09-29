@@ -136,7 +136,25 @@ Local adapted routers and their child playbooks are baked into the image at `/op
 | [Academic research](https://github.com/Imbad0202/academic-research-skills) | A paper, a citation check | CC BY-NC 4.0. Not MIT |
 | Security | Authorized recon, a hunt, a report. One pack among the others | Apache-2.0 |
 
+### Where the playbooks live
+
+The 51 playbooks that do not know what runtime they run on live in one place,
+[cat-paw-workflows](https://github.com/kumanaya/cat-paw-workflows), which
+[hermes-cat-paw](https://github.com/kumanaya/hermes-cat-paw) also bakes. This
+image clones it at build time at the commit in
+`vendor/cat-paw-workflows.pin` — pinned by SHA, not by tag, for the same reason
+the base image is. A change there lands in both images at once, which is why
+that repository verifies itself.
+
+Five skills stay here, because they are statements about *this* agent: the
+boot, the state directory, how a reply is delivered, what is baked in this
+image. The same text would be false in the other runtime.
+
 ### Local adapted sources
+
+Canonical in [cat-paw-workflows](https://github.com/kumanaya/cat-paw-workflows#adapted-sources),
+which is where those playbooks now live. Reproduced here so the licence and
+scope caveats travel with the product page.
 
 | Source repo | Audited commit | License and scope caveat |
 | --- | --- | --- |

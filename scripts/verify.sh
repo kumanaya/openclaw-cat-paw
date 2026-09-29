@@ -170,40 +170,62 @@ count_skills() {
 }
 
 echo "verify: baked playbooks ($BAKED)"
-# Every SKILL.md in this repository must be a TOP-LEVEL directory in the image.
-# image/publish-skills.sh flattens the repo's `skills/<pack>/<playbook>/` shape
-# at build time, because OpenClaw's loader stops at a directory that has a
-# SKILL.md and never looks inside it — a pack baked as-is loads its router and
-# none of the playbooks behind it.
+# The image is the union of two sources, and the check has to be the union
+# too: the 51 shared playbooks at the commit this repo pins, and the five
+# runtime-specific skills that live here. Checking only what is in this
+# repository would pass an image with zero shared playbooks in it, which is
+# the failure that matters most.
+#
+# So the expected set is read from the PIN, not from this working tree: a
+# change in cat-paw-workflows then changes what this build is expected to
+# contain, instead of leaving the check green against a stale idea of it.
+SHARED_PIN="$ROOT/vendor/cat-paw-workflows.pin"
+shared_checkout="$(mktemp -d)"
+trap 'rm -rf "$shared_checkout"' EXIT
+shared_repo="$(sed -n 's/^repo=//p' "$SHARED_PIN")"
+shared_sha="$(sed -n 's/^sha=//p' "$SHARED_PIN")"
+if [[ -z "$shared_repo" || -z "$shared_sha" ]]; then
+  echo "verify: $SHARED_PIN needs a repo= and a sha= line" >&2
+  exit 1
+fi
+if ! git clone --filter=blob:none --quiet "$shared_repo" "$shared_checkout"; then
+  echo "verify: cannot clone $shared_repo" >&2
+  echo "verify: this needs network and git. Run it where both exist." >&2
+  exit 1
+fi
+git -C "$shared_checkout" checkout --quiet "$shared_sha"
+echo "verify: shared playbooks pinned at $shared_sha"
+
 expected=0
 missing=0
-while IFS= read -r skill_md; do
+expected_names=""
+add_expected() {
+  local name="$1"
   expected=$((expected + 1))
-  name="$(basename "$(dirname "$skill_md")")"
+  expected_names="${expected_names:+$expected_names,}$name"
   if ! "${COMPOSE[@]}" exec -T -u node "$SERVICE" test -f "$BAKED/$name/SKILL.md" 2>/dev/null; then
     echo "verify: $name is not a top-level skill in the image." >&2
     missing=$((missing + 1))
   fi
+}
+while IFS= read -r skill_md; do
+  add_expected "$(basename "$(dirname "$skill_md")")"
+done < <(find "$shared_checkout/skills" -name SKILL.md -type f | LC_ALL=C sort)
+shared_count="$expected"
+while IFS= read -r skill_md; do
+  add_expected "$(basename "$(dirname "$skill_md")")"
 done < <(find "$ROOT/skills" -name SKILL.md -type f | LC_ALL=C sort)
 if (( missing != 0 )); then
   echo "verify: $missing of $expected playbooks are missing or still nested. Rebuild (scripts/install.sh)." >&2
   exit 1
 fi
-echo "verify: $expected/$expected playbooks are top-level skills in the image"
+echo "verify: $expected/$expected playbooks are top-level skills in the image ($shared_count shared + $((expected - shared_count)) local)"
 
 echo "verify: OpenClaw actually loads them (not just on disk)"
 # Files in a skills directory prove a copy landed. They do not prove the loader
 # sees them, and a playbook the model cannot open is a playbook the cat does
 # not have. This asks OpenClaw itself, and requires every one of them to be
 # model-visible.
-# The same list, comma-joined, handed to the Python below. Built in a loop
-# rather than with xargs: xargs runs its command once with no arguments when
-# the input is empty, which is a usage error and an empty list at once.
-expected_names=""
-while IFS= read -r skill_md; do
-  name="$(basename "$(dirname "$skill_md")")"
-  expected_names="${expected_names:+$expected_names,}$name"
-done < <(find "$ROOT/skills" -name SKILL.md -type f | LC_ALL=C sort)
 loaded="$("${COMPOSE[@]}" exec -T -u node "$SERVICE" "$PYTHON" -c '
 import json, subprocess, sys
 listed = subprocess.run(
